@@ -1,0 +1,29 @@
+{
+  "name": "json-gpg",
+  "version": "0.0.0",
+  "description": "GPG sign and verify JSON objects",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter=spec --timeout=0 test/*-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:indutny/json-gpg"
+  },
+  "keywords": [
+    "GPG",
+    "JSON"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/json-gpg/issues"
+  },
+  "homepage": "https://github.com/indutny/json-gpg",
+  "devDependencies": {
+    "mocha": "^1.18.2"
+  },
+  "dependencies": {
+    "prompt": "^0.2.12"
+  }
+}
