@@ -13,27 +13,42 @@ function stringifySorted(obj) {
 }
 
 function gpgAction(action, key, passphrase, input, cb) {
-  var args = [ action, '--no-tty', '--armor', '--passphrase-fd', '3' ];
+  var args = [
+    action,
+    '--no-tty',
+    '--armor',
+    '--passphrase-fd', '3',
+    '--status-fd', 3
+  ];
   if (key)
     args.push('-u', key);
 
   var child = spawn('gpg', args, {
-    stdio: [ 'pipe', 'pipe', 'pipe', 'pipe' ]
+    stdio: [ 'pipe', 'pipe', 'pipe', 'pipe', 'pipe' ]
   });
   child.stdio[3].write(passphrase + '\n');
   child.stdin.end(input);
 
   var output = '';
   var err = '';
+  var status = '';
   child.stdout.on('data', function(chunk) {
     output += chunk;
   });
   child.stderr.on('data', function(chunk) {
     err += chunk;
   });
+  child.stdio[3].on('data', function(chunk) {
+    status += chunk;
+  });
   child.once('close', function(code) {
+    var fingerprint = null;
+    var match = status.match(
+        /(?:SIG_CREATED|VALIDSIG)\s+[^\n]*\s+([^\s\n]+)\n/);
+    if (match)
+      fingerprint = match[1];
     if (code === 0)
-      cb(null, output);
+      cb(null, output, fingerprint);
     else
       cb(new Error('gpg call failed:\n' + err), null);
   });
@@ -65,11 +80,19 @@ exports.sign = function sign(object, key, cb) {
   getPassphrase(function(err, passphrase) {
     if (err)
       return cb(err);
-    gpgAction('--sign', key, passphrase, stringifySorted(object), cb);
+    var input = stringifySorted(object);
+    gpgAction('--sign', key, passphrase, input, function(err, res, fp) {
+      if (err)
+        return cb(err);
+      cb(null, {
+        signature: res,
+        fingerprint: fp
+      });
+    });
   });
 };
 
-exports.verify = function verify(object, signature, key, cb) {
+exports.verify = function verify(object, res, key, cb) {
   if (typeof key === 'function') {
     cb = key;
     key = null;
@@ -77,10 +100,14 @@ exports.verify = function verify(object, signature, key, cb) {
   getPassphrase(function(err, passphrase) {
     if (err)
       return cb(err);
-    gpgAction('--decrypt', key, passphrase, signature, function(err, result) {
+    gpgAction('--decrypt',
+              key,
+              passphrase,
+              res.signature,
+              function(err, input, fp) {
       if (err)
         return cb(err);
-      cb(null, result === stringifySorted(object));
+      cb(null, res.fingerprint === fp && input === stringifySorted(object));
     });
   });
 };
