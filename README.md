@@ -8,11 +8,11 @@ A tool to sign and verify JSON objects programmatically from node.js.
 var jsonGpg = require('json-gpg');
 
 var obj = { hello: 'world' };
-jsonGpg.sign(obj, function(err, signature) {
+jsonGpg.sign(obj, /* optional */ key, function(err, signature) {
   if (err)
     throw err;
   console.log('Signature:\n' + signature);
-  jsonGpg.verify(obj, signature, function(err, result) {
+  jsonGpg.verify(obj, signature, /* optional */ key, function(err, result) {
     if (err)
       throw err;
     console.log('Verification result: ', result ? 'ok' : 'failure');

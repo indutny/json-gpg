@@ -12,8 +12,10 @@ function stringifySorted(obj) {
   }).join(',') + '}';
 }
 
-function gpgAction(action, passphrase, input, cb) {
-  var args = action.concat([ '--no-tty', '--armor', '--passphrase-fd', '3' ]);
+function gpgAction(action, key, passphrase, input, cb) {
+  var args = [ action, '--no-tty', '--armor', '--passphrase-fd', '3' ];
+  if (key)
+    args.push('-u', key);
 
   var child = spawn('gpg', args, {
     stdio: [ 'pipe', 'pipe', 'pipe', 'pipe' ]
@@ -38,7 +40,7 @@ function gpgAction(action, passphrase, input, cb) {
 }
 
 function getPassphrase(cb) {
-  prompt.start();
+  prompt.start({ message: 'json-gpg' });
   prompt.get({
     properties: {
       passphrase: {
@@ -55,19 +57,27 @@ function getPassphrase(cb) {
   });
 }
 
-exports.sign = function sign(object, cb) {
+exports.sign = function sign(object, key, cb) {
+  if (typeof key === 'function') {
+    cb = key;
+    key = null;
+  }
   getPassphrase(function(err, passphrase) {
     if (err)
       return cb(err);
-    gpgAction([ '--sign' ], passphrase, stringifySorted(object), cb);
+    gpgAction('--sign', key, passphrase, stringifySorted(object), cb);
   });
 };
 
-exports.verify = function verify(object, signature, cb) {
+exports.verify = function verify(object, signature, key, cb) {
+  if (typeof key === 'function') {
+    cb = key;
+    key = null;
+  }
   getPassphrase(function(err, passphrase) {
     if (err)
       return cb(err);
-    gpgAction([ '--decrypt' ], passphrase, signature, function(err, result) {
+    gpgAction('--decrypt', key, passphrase, signature, function(err, result) {
       if (err)
         return cb(err);
       cb(null, result === stringifySorted(object));
