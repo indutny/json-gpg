@@ -16,7 +16,7 @@ jsonGpg.sign(obj, /* optional */ key, function(err, result) {
     if (err)
       throw err;
     console.log('Verification result: ', result ? 'ok' : 'failure');
-  }});
+  });
 });
 ```
 
